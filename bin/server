@@ -1,8 +1,30 @@
 #!/usr/bin/env node
 
-var config = require("nconf")
-	.argv()
-	.file({file:__dirname+"/../config.json"});
+var cluster = require('cluster');
 
-redirect = require('../lib/redirect')(config.get('redirects'), config.get('port'));
-console.log('redirect running on port %d', redirect.address().port);
+if(cluster.isMaster) {
+    var numWorkers = 4;
+
+    console.log('Master cluster setting up ' + numWorkers + ' workers...');
+
+    for(var i = 0; i < numWorkers; i++) {
+        cluster.fork();
+    }
+
+    cluster.on('online', function(worker) {
+        console.log('Worker ' + worker.process.pid + ' is online');
+    });
+
+    cluster.on('exit', function(worker, code, signal) {
+        console.log('Worker ' + worker.process.pid + ' died with code: ' + code + ', and signal: ' + signal);
+        console.log('Starting a new worker');
+        cluster.fork();
+    });
+} else {
+    var config = require("nconf")
+    	.argv()
+    	.file({file:__dirname+"/../config.json"});
+    
+    redirect = require('../lib/redirect')(config.get('redirects'), config.get('port'));
+}
+
