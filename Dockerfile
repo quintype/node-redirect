@@ -1,6 +1,6 @@
 FROM node:6
 
-RUN adduser -D -h /app -H app
+RUN useradd -ms /bin/bash app
 
 ADD . /app
 RUN mkdir -p /app /app/public/quintype
